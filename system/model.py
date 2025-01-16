@@ -1,11 +1,11 @@
 import json
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
+from trl import PPOTrainer, PPOConfig, create_reference_model
 
 class Client:
     def __init__(self,
-                 model_name_or_path: str = "EleutherAI/gpt-neo-2.7B",
+                 model_name_or_path: str = "gpt-neo-2.7B",
                  device: str = "cuda",
                  dtype: torch.dtype = torch.float16,
                  use_flash_attention_2: bool = True):
@@ -20,6 +20,9 @@ class Client:
         self.model_name_or_path = model_name_or_path
         self.device = device
         self.dtype = dtype
+        self.history = []
+        self.rewards = 0.0
+        self.steps = 0
 
         # 根据是否需要 Flash Attention 2，拼接相应的参数
         if use_flash_attention_2:
@@ -55,6 +58,8 @@ class Client:
         :param temperature: 采样时的温度
         :return: 一个字符串/字典，或其他结构化数据
         """
+        self.steps += 1
+
         if history is None:
             history = []
 
@@ -78,6 +83,11 @@ class Client:
 
         # 解码得到文本
         raw_output = self.tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)[0]
+        # 记录历史
+        self.history.append({
+            "input": context_text,
+            "output": raw_output
+        })
 
         # 简单做法：只截取 prompt 后模型新生成的部分
         new_text = raw_output[len(context_text):].strip()
@@ -92,6 +102,38 @@ class Client:
         #     return {"error": "JSON parse error", "raw_text": new_text}
 
         return new_text
+
+    def PPO_train (self, prompt: str, reward: float):
+        tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
+        if tokenizer.pad_token_id is None:
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+
+        # -------------------------------------------------------------
+        # 3. 配置 PPO
+        # -------------------------------------------------------------
+        ppo_config = PPOConfig(
+            exp_name="PPOExample",  # 实验名称
+            reward_model_path="EleutherAI/gpt-neo-2.7B",  # 奖励模型路径
+            output_dir="./ppo_output",  # 输出目录
+            batch_size=2,  # 每次进行 PPO 更新时同时处理的数量
+            learning_rate=1e-5,  # 学习率可根据需要调整
+        )
+
+        # 创建 PPOTrainer
+        ppo_trainer = PPOTrainer(
+            model=self.model,
+            ref_model=create_reference_model(self.model),
+            tokenizer=tokenizer,
+            **ppo_config.__dict__
+        )
+        # 计算自定义奖励
+        reward = reward/self.steps
+        EPOCHS = 3  # 示例中只训练 3 轮，你可以自行调整
+        for epoch in range(EPOCHS):
+            print(f"=== Epoch {epoch + 1}/{EPOCHS} ===")
+            for _ in self.history:
+                ppo_trainer.
+
 
 
 # 例如，在主程序中可以这样使用：

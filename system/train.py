@@ -1,10 +1,11 @@
 import sympy
 from system.scoring import llama_scoring_system
 import json
-from model import generate_model_response_chat_neo
+from model import Client
 
 
-def solve_one_question(question, solution ,correct_answer, ppo_trainer):
+
+def solve_one_question(client,question, solution ,correct_answer, ppo_trainer):
     """
     针对单道题目的完整流程（简化示例）
     question: "请计算 x^2 + 2x + 1 在 x=2 时的值" (示例)
@@ -14,7 +15,7 @@ def solve_one_question(question, solution ,correct_answer, ppo_trainer):
 
     # 这里的 history_info 可以记录每一次交互，比如:
     global score_feedback
-    history_info = []
+    history_info = [] # 用于记录每一轮的信息
 
     # 1) 给模型的起始prompt，告诉它：
     #   "请输出 JSON，包含 step、sympy_function、sympy_equation、require_next_step"
@@ -37,7 +38,7 @@ def solve_one_question(question, solution ,correct_answer, ppo_trainer):
     while require_next_step:
         round_idx += 1
         # 2) 调用模型生成答复（JSON）
-        new_text = generate_model_response_chat_neo(
+        new_text = client.generate(
             prompt=question_prompt,
             history=history_info
         )
@@ -100,6 +101,7 @@ def solve_one_question(question, solution ,correct_answer, ppo_trainer):
                 model_output=model_output,
                 sympy_output=None,
                 correct_answer=correct_answer,
+                step=round_idx,
                 error_message=error_message
             )
             print(f"[SymPy 执行报错] round={round_idx}, score_feedback={score_feedback}")

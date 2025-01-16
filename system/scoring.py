@@ -17,6 +17,7 @@ def llama_scoring_system(
     sympy_output,
     correct_solution,
     correct_answer,
+    step=None,
     error_message=None
 ):
     """
@@ -47,7 +48,7 @@ def llama_scoring_system(
         "You are a scoring and error hint model, please return in JSON format only, "
         "the JSON should contain two fields:\n"
         "1. \"error_hint\": a string providing hints about errors or shortcomings\n"
-        "2. \"score\": an integer representing the score (0-10)\n"
+        f"2. \"score\": a double representing the score (0-{step})\n"
         "Please do not return anything other than JSON."
     )
 
