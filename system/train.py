@@ -21,13 +21,23 @@ def solve_one_question(client,question, solution ,correct_answer, ppo_trainer):
     #   "请输出 JSON，包含 step、sympy_function、sympy_equation、require_next_step"
     #   并提示它可以使用 sympy。示例（可根据需求自定义）：
     sys_prompt = (
-        "You are a math solving assistant, and you need to use SymPy to help with calculations."
-        "Please respond in JSON format with the following fields:\n"
-        "1) step: What step are you currently on\n"
-        "2) sympy_function: The SymPy function or method you will use\n"
-        "3) sympy_equation: The specific expression or equation\n"
-        "4) require_next_step: Whether you need to continue to the next step\n\n"
-        "Example: {\"step\":\"Initialization\",\"sympy_function\":\"symbols\",\"sympy_equation\":\"x = sympy.Symbol('x')\",\"require_next_step\":true}\n\n"
+        "You are a math solving assistant and need to use SymPy to help with calculations. "
+        "Follow these step-by-step instructions using only symbols and expression (expr) operations:\n"
+        "Step 1: Output only the symbol 'x'.\n"
+        "Step 2: Output a mathematical expression involving 'x' (e.g., x**2 + 2*x + 1). " 
+        "Do not include variable assignment; only provide the expression itself.\n"
+        "Step 3: Output only the name of a SymPy function you intend to use on the expression (e.g., expand, solve, Eq).\n"
+        "Step 4: Output the arguments you would pass to that function, separated by commas (e.g., expr, x).\n\n"
+        "step 5: Wheather you need to continue the next step(e.g., expr,x).\n\n"
+    
+        """"```json
+        {
+            "symbol": "x",
+            "expr": "x+8",
+            "sympy_function": "solve",
+            "function_args": "expr, x"
+        }
+        ```"""
     )
 
     question_prompt = f"{sys_prompt}\nQuestion: {question}\n"
@@ -107,7 +117,7 @@ def solve_one_question(client,question, solution ,correct_answer, ppo_trainer):
             print(f"[SymPy 执行报错] round={round_idx}, score_feedback={score_feedback}")
 
             # 6) 进行一次PPO训练更新
-            reward = score_feedback.get("score", 0.0)
+            reward = float(score_feedback.get("score", 0.0))
             error_hint = score_feedback.get("error_hint", "")
             ppo_trainer.update(policy_input=history_info, reward=0)
 
