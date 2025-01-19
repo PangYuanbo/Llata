@@ -10,6 +10,18 @@ def remove_repeated_question(response, question):
         # 截取问题之后的部分
         response = response[question_position + len(question):].strip()
     return response
+
+# 将 messages 拼接为单个字符串
+def messages_to_string(messages):
+    """
+    将 messages 转换为单个字符串，保留对话上下文。
+    """
+    context = ""
+    for message in messages:
+        # 拼接角色和内容
+        context += f"{message['role']}: {message['content']}\n"
+    return context.strip()  # 移除最后一个多余的换行符
+
 def main():
     model_name = "meta-llama/Llama-3.2-3B-Instruct"
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=False)
@@ -34,6 +46,7 @@ def main():
             "expr": "x+8",
             "sympy_function": "solve",
             "function_args": "expr, x"
+            "require_next_step": "True"
         }
        
         ```
@@ -44,7 +57,10 @@ def main():
 
     question_prompt = f"{sys_prompt}\nQuestion: {question}\n"
     print(question)
-    inputs = tokenizer(question_prompt, return_tensors="pt")
+    messages = [
+        {"role": "user", "content": question_prompt}
+    ]
+    inputs = tokenizer(messages_to_string(messages), return_tensors="pt")
 
     outputs = model.generate(
         **inputs,
