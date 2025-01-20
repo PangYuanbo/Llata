@@ -2,7 +2,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import json
 import re
 from utils.datautil import get_gsm8k_question_solution_answer
-
+from peft import PeftModel, PeftConfig
 def remove_repeated_question(response, question):
     # 找到问题第一次出现的位置
     question_position = response.find(question)
@@ -26,6 +26,15 @@ def main():
     model_name = "meta-llama/Llama-3.2-3B-Instruct"
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=False)
     model = AutoModelForCausalLM.from_pretrained(model_name, use_auth_token=False)
+    # 加载 LoRA 配置
+
+
+    # 加载 LoRA 权重并附加到原始模型
+    model = PeftModel.from_pretrained(model, "lora")
+
+    # 加载分词器
+
+    model = model.merge_and_unload()
     gen= get_gsm8k_question_solution_answer(split="train")
 
     question=next(gen)["question"]
