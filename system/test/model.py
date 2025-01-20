@@ -57,10 +57,10 @@ def main():
 
     question_prompt = f"{sys_prompt}\nQuestion: {question}\n"
     print(question)
-    messages = [
+    messages =messages_to_string( [
         {"role": "user", "content": question_prompt}
-    ]
-    inputs = tokenizer(messages_to_string(messages), return_tensors="pt")
+    ])
+    inputs = tokenizer(messages, return_tensors="pt")
 
     outputs = model.generate(
         **inputs,
